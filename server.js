@@ -1,12 +1,19 @@
 var express = require('express')
 	, bodyParser = require('body-parser')
-	, port = process.env.PORT || 8080;
+	, port = process.env.PORT || 8080
+	, morgan = require('morgan');
 
 var app = express();
 
+var server = require('http').Server(app);
+
+var io = require('socket.io')(server);
+
 app.use(express.static('public'));
+app.use(morgan('dev'));
 
 app.use(bodyParser.urlencoded({ extended: false }));
+app.use(bodyParser.json());
 
 var tasks = [ {id: 0, description: "Go to the store", complete: false} ]
 	, currentID = 1;
@@ -18,8 +25,7 @@ app.get('/tasks', function(req, res) {
 });
 
 app.post('/tasks', function(req, res) {
-	var task = { id: currentID, description: req.body.description, complete: false };
-	console.log(req.body);
+	var task = { id: currentID, description: req.body.description, complete: req.body.complete };
 	tasks.push(task);
 	currentID++;
 
@@ -52,17 +58,19 @@ app.delete('/tasks/:id', function(req, res) {
 });
 
 app.put('/tasks/:id', function(req, res) {
-	var id = req.params.id;
+	var id = req.params.id
+		, returnTask = {};
+	
 
 	tasks.forEach(function(task) {
 		if (task.id == id) {
 			task.description = req.body.description;
 			task.complete = req.body.complete;
-			return res.json(task);
+			returnTask = task;
 		}
 	});
 
-	res.json({});
+	res.json(returnTask);
 });
 
 app.get('*', function(req, res) {
